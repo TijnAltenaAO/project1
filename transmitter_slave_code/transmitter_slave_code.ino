@@ -19,9 +19,11 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 Servo myServo;
 
 // Define GPIO pin for the servo
-#define SERVO_PIN 34
+#define SERVO_PIN 18
 
 MPU9250_WE myMPU9250 = MPU9250_WE(MPU9250_ADDR);
+
+int servo_angle;
 
 void setup() {
   Serial.begin(9600);
@@ -64,17 +66,16 @@ void setup() {
 
 void loop() {
   xyzFloat angle = myMPU9250.getAngles();
-
-
-  Serial.print("Angle x   = ");
-  Serial.print(angle.x);
+// maybe write logic so it cant go from 90->-Q, yk.
+  Serial.print("Angle z   = ");
+  Serial.print(angle.z);
   Serial.println();
 
-  // Clear display buffer
   display.clearDisplay();
   display.setCursor(0, 10);
   display.println(angle.x);
   display.display();
 
-  myServo.write(50);
+  myServo.write(angle.x + 90);
+  delay(100);
 }
