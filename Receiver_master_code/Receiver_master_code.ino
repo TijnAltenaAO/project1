@@ -66,6 +66,14 @@ void setup() {
   display.display();
 }
 
+int decideWinner(int base, int val, int val1) {
+  int diff = abs(val - base);
+  int diff1 = abs(val1 - base);
+
+   // Check if < suffices. maybe implement = case?
+  return (diff1 < diff2) ? value1 : value2;
+}
+
 void loop() {
   if (gamePaused) {
     // read potpin to gather level.
