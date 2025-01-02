@@ -43,7 +43,7 @@ void setup() {
   pinMode(potPin, INPUT);
 
   // Attach interrupt to the button pin
-  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), handleButtonPress, FALLING);
+  attachInterrupt(digitalPinToInterrupt(buttonPin), handleButtonPress, FALLING);
 
   myServo.attach(SERVO_PIN, 500, 2500);  // 500 µs to 2500 µs corresponds to 0° to 180° (figure out if not limited to 120 or 160)
 
@@ -121,6 +121,6 @@ void loop() {
     display.setCursor(0, 10);
     display.println("W" + decideWinner(randomValue, data1, Data2));
     display.display();
-
-  }
+    
+    gamePaused = true;
 }
