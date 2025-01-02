@@ -2,6 +2,7 @@ int potPin = 34;
 int buttonPin = 27;
 int potValue;
 int stepValue;
+int levelTime;
 volatile bool gamePaused = true;  // game paused or not.
 
 
@@ -32,9 +33,30 @@ void loop() {
     potValue = analogRead(potPin);  // Read the potentiometer value (0-4095)
 
     // Map the raw value to 4 discrete steps: 0, 1, 2, 3
-    stepValue = map(potValue, 0, 4095, 0, 3);
+    stepValue = map(potValue, 0, 4095, 1, 3);
+
   } else {
-    // send level to slaves, and send angle.
+    // send level to slaves, and generate and send angle.
+    randomSeed(esp_random());  // Seed the random generator with hardware RNG
+    int randomValue = random(0, 161);
+
+    Serial.print(randomValue);
+
+    switch (stepValue) {
+      case 1:
+        levelTime = 1500;
+        break;
+      case 2:
+        levelTime = 3000;
+        break;
+      case 3:
+        levelTime = 4500;
+        break;
+    }
+    
+    Serial.print(levelTime);
+    delay(levelTime);
+
     // also write angle to master servo.
     // read data from slaves to computate winner.
     String data1 = Serial2.readStringUntil('\n');
