@@ -66,12 +66,12 @@ void setup() {
   display.display();
 }
 
-int decideWinner(int base, int val, int val1) {
+String decideWinner(int base, int val, int val1) {
   int diff = abs(val - base);
   int diff1 = abs(val1 - base);
 
    // Check if < suffices. maybe implement = case?
-  return (diff1 < diff2) ? value1 : value2;
+  return (diff1 < diff2) ? "p1" : "p2";
 }
 
 void loop() {
@@ -112,11 +112,15 @@ void loop() {
     Serial1.print(randomValue);
     Serial2.print(randomValue);
 
-    // read data from slaves to computate winner.
-    String data1 = Serial2.readStringUntil('\n');
-    Serial.println("ESP32-1: " + data1);
+    // read angles from slaves.
+    String data1 = Serial1.readStringUntil('\n');
+    String data2 = Serial2.readStringUntil('\n');
 
-    String data2 = Serial1.readStringUntil('\n');
-    Serial.println("ESP32-2: " + data2);
+    // decide winner
+    display.clearDisplay();
+    display.setCursor(0, 10);
+    display.println("W" + decideWinner(randomValue, data1, Data2));
+    display.display();
+
   }
 }
