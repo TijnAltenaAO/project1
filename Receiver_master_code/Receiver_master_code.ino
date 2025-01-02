@@ -1,4 +1,17 @@
 #include <ESP32Servo.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define MPU9250_ADDR 0x68
+// Define screen dimensions
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+// Define I2C address for ssd1306
+#define OLED_ADDR 0x3C
+
+// Create SSD1306 object
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 // Define servo object
 Servo myServo;
@@ -30,9 +43,35 @@ void setup() {
   pinMode(potPin, INPUT);
 
   // Attach interrupt to the button pin
-  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), handleButtonPress, FALLING);
+  attachInterrupt(digitalPinToInterrupt(buttonPin), handleButtonPress, FALLING);
 
   myServo.attach(SERVO_PIN, 500, 2500);  // 500 µs to 2500 µs corresponds to 0° to 180° (figure out if not limited to 120 or 160)
+
+  // Initialize display
+  if (!display.begin(SSD1306_I2C_ADDRESS, OLED_ADDR)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;)
+      ;
+  }
+
+  // Clear display buffer
+  display.clearDisplay();
+
+  // Set text size and color
+  display.setTextSize(1);  // Normal size
+  display.setTextColor(SSD1306_WHITE);
+
+  // Display text
+  display.setCursor(0, 10);
+  display.display();
+}
+
+String decideWinner(int base, int val, int val1) {
+  int diff = abs(val - base);
+  int diff1 = abs(val1 - base);
+
+   // Check if < suffices. maybe implement = case?
+  return (diff1 < diff2) ? "p1" : "p2";
 }
 
 void loop() {
@@ -42,6 +81,10 @@ void loop() {
 
     // Map the raw value to 4 discrete steps: 0, 1, 2, 3
     stepValue = map(potValue, 0, 4095, 1, 3);
+    display.clearDisplay();
+    display.setCursor(0, 10);
+    display.println(stepValue);
+    display.display();
 
   } else {
     // send level to slaves, and generate and send angle.
@@ -60,18 +103,24 @@ void loop() {
         break;
     }
 
-    Serial.print(levelTime);
+    Serial1.print(levelTime);
+    Serial2.print(levelTime);
     delay(levelTime);
 
     // also write angle to master servo.
     myServo.write(randomValue);
-    Serial.print(randomValue);
+    Serial1.print(randomValue);
+    Serial2.print(randomValue);
 
-    // read data from slaves to computate winner.
-    String data1 = Serial2.readStringUntil('\n');
-    Serial.println("ESP32-1: " + data1);
+    // read angles from slaves.
+    String data1 = Serial1.readStringUntil('\n');
+    String data2 = Serial2.readStringUntil('\n');
 
-    String data2 = Serial1.readStringUntil('\n');
-    Serial.println("ESP32-2: " + data2);
-  }
+    // decide winner
+    display.clearDisplay();
+    display.setCursor(0, 10);
+    display.println("W" + decideWinner(randomValue, data1, Data2));
+    display.display();
+    
+    gamePaused = true;
 }
