@@ -1,4 +1,17 @@
 #include <ESP32Servo.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define MPU9250_ADDR 0x68
+// Define screen dimensions
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+// Define I2C address for ssd1306
+#define OLED_ADDR 0x3C
+
+// Create SSD1306 object
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 // Define servo object
 Servo myServo;
@@ -33,6 +46,24 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), handleButtonPress, FALLING);
 
   myServo.attach(SERVO_PIN, 500, 2500);  // 500 µs to 2500 µs corresponds to 0° to 180° (figure out if not limited to 120 or 160)
+
+  // Initialize display
+  if (!display.begin(SSD1306_I2C_ADDRESS, OLED_ADDR)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;)
+      ;
+  }
+
+  // Clear display buffer
+  display.clearDisplay();
+
+  // Set text size and color
+  display.setTextSize(1);  // Normal size
+  display.setTextColor(SSD1306_WHITE);
+
+  // Display text
+  display.setCursor(0, 10);
+  display.display();
 }
 
 void loop() {
@@ -42,6 +73,10 @@ void loop() {
 
     // Map the raw value to 4 discrete steps: 0, 1, 2, 3
     stepValue = map(potValue, 0, 4095, 1, 3);
+    display.clearDisplay();
+    display.setCursor(0, 10);
+    display.println(stepValue);
+    display.display();
 
   } else {
     // send level to slaves, and generate and send angle.
