@@ -95,12 +95,14 @@ void loop() {
         break;
     }
 
-    Serial.print(levelTime);
+    Serial1.print(levelTime);
+    Serial2.print(levelTime);
     delay(levelTime);
 
     // also write angle to master servo.
     myServo.write(randomValue);
-    Serial.print(randomValue);
+    Serial1.print(randomValue);
+    Serial2.print(randomValue);
 
     // read data from slaves to computate winner.
     String data1 = Serial2.readStringUntil('\n');
