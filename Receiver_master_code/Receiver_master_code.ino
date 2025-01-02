@@ -1,10 +1,15 @@
+#include <ESP32Servo.h>
+
+// Define servo object
+Servo myServo;
+
 int potPin = 34;
 int buttonPin = 27;
+int servoPin = 18;
 int potValue;
 int stepValue;
 int levelTime;
 volatile bool gamePaused = true;  // game paused or not.
-
 
 // Interrupt Service Routine (ISR) for the button
 void IRAM_ATTR handleButtonPress() {
@@ -15,6 +20,7 @@ void setup() {
   // Initialize Serial Monitor
   Serial.begin(115200);
   delay(1000);
+
   // Initialize UART1
   Serial2.begin(9600, SERIAL_8N1, 16, 17);  // Replace RX1_PIN and TX1_PIN with your GPIOs
 
@@ -25,6 +31,8 @@ void setup() {
 
   // Attach interrupt to the button pin
   attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), handleButtonPress, FALLING);
+
+  myServo.attach(SERVO_PIN, 500, 2500);  // 500 µs to 2500 µs corresponds to 0° to 180° (figure out if not limited to 120 or 160)
 }
 
 void loop() {
@@ -40,8 +48,6 @@ void loop() {
     randomSeed(esp_random());  // Seed the random generator with hardware RNG
     int randomValue = random(0, 161);
 
-    Serial.print(randomValue);
-
     switch (stepValue) {
       case 1:
         levelTime = 1500;
@@ -53,11 +59,14 @@ void loop() {
         levelTime = 4500;
         break;
     }
-    
+
     Serial.print(levelTime);
     delay(levelTime);
 
     // also write angle to master servo.
+    myServo.write(randomValue);
+    Serial.print(randomValue);
+
     // read data from slaves to computate winner.
     String data1 = Serial2.readStringUntil('\n');
     Serial.println("ESP32-1: " + data1);
