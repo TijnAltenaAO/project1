@@ -77,11 +77,15 @@ String decideWinner(int base, int val, int val1) {
 }
 
 void loop() {
-      // Serial.println(Serial2.readStringUntil('\n'));
-      // Serial.println((Serial2.readStringUntil('\n').toInt()));
-      // delay(100)
+  // Serial.println(Serial2.readStringUntil('\n'));
+  // Serial.println((Serial2.readStringUntil('\n').toInt()));
+  // delay(100)
   if (gamePaused) {
+    String data2Str = Serial2.readStringUntil('\n');
+    int data2 = data2Str.toInt();
     Serial.println("gamepaused");
+    Serial.println(data2);
+
     // read potpin to gather level.
     potValue = analogRead(potPin);  // Read the potentiometer value (0-4095)
 
@@ -91,11 +95,6 @@ void loop() {
     display.setCursor(0, 10);
     display.println(stepValue);
     display.display();
-  } else {
-    // send level to slaves, and generate and send angle.
-    randomSeed(esp_random());  // Seed the random generator with hardware RNG
-    int randomValue = random(0, 161);
-    Serial.println(randomValue);
 
     switch (stepValue) {
       case 1:
@@ -108,39 +107,47 @@ void loop() {
         levelTime = 4500;
         break;
     }
-    Serial.println(levelTime);
-    Serial1.print(levelTime);
-    Serial2.print(levelTime);
+  } else {
+    // send level to slaves, and generate and send angle.
+    // randomSeed(esp_random());  // Seed the random generator with hardware RNG
+    // int randomValue = random(0, 161);
+    // Serial.println(randomValue);
 
-    // also write angle to master servo.
-    myServo.write(randomValue);
-    Serial.println("wrote to master servo");
-    Serial1.print(randomValue);
-    Serial2.print(randomValue);
+    // Serial.println(levelTime);
+    // Serial1.print(levelTime);
+    // Serial2.print(levelTime);
 
-    display.clearDisplay();
-    display.setCursor(0, 10);
-    display.println(randomValue);
-    display.display();
+    // // also write angle to master servo.
+    // myServo.write(randomValue);
+    // Serial.println("wrote to master servo");
+    // Serial1.print(randomValue);
+    // Serial2.print(randomValue);
 
-    delay(levelTime);
+    // display.clearDisplay();
+    // display.setCursor(0, 10);
+    // display.println(randomValue);
+    // display.display();
 
-     // read angles from slaves.
+    // delay(levelTime);
+    delay(2000);
+
+    // read angles from slaves.
     int data1 = (Serial1.readStringUntil('\n').toInt());
-    Serial.println("esp2: " + Serial2.readStringUntil('\n'));
-    int data2 = (Serial2.readStringUntil('\n').toInt());
+    String data2Str = Serial2.readStringUntil('\n');
+    int data2 = data2Str.toInt();
+
     Serial.print("p1: ");
     Serial.println(data1);
     Serial.print("p2: ");
     Serial.println(data2);
 
-    // decide winner
-    display.clearDisplay();
-    display.setCursor(0, 10);
-    display.println("W" + decideWinner(randomValue, data1, data2));
-    display.display();
-    Serial.print(decideWinner(randomValue, data1, data2));
-    Serial.println(" wins!");
+    // // decide winner
+    // display.clearDisplay();
+    // display.setCursor(0, 10);
+    // display.println("W" + decideWinner(randomValue, data1, data2));
+    // display.display();
+    // Serial.print(decideWinner(randomValue, data1, data2));
+    // Serial.println(" wins!");
     delay(4000);
 
     gamePaused = true;
