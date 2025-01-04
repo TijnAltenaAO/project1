@@ -30,6 +30,8 @@ void IRAM_ATTR handleButtonPress() {
 }
 
 void setup() {
+  pinMode(buttonPin, INPUT_PULLUP);
+
   // Initialize Serial Monitor
   Serial.begin(115200);
   delay(1000);
@@ -45,10 +47,10 @@ void setup() {
   // Attach interrupt to the button pin
   attachInterrupt(digitalPinToInterrupt(buttonPin), handleButtonPress, FALLING);
 
-  myServo.attach(SERVO_PIN, 500, 2500);  // 500 µs to 2500 µs corresponds to 0° to 180° (figure out if not limited to 120 or 160)
+  myServo.attach(servoPin, 500, 2500);  // 500 µs to 2500 µs corresponds to 0° to 180° (figure out if not limited to 120 or 160)
 
   // Initialize display
-  if (!display.begin(SSD1306_I2C_ADDRESS, OLED_ADDR)) {
+  if (!display.begin(SSD1306_PAGEADDR, OLED_ADDR)) {
     Serial.println(F("SSD1306 allocation failed"));
     for (;;)
       ;
@@ -58,11 +60,11 @@ void setup() {
   display.clearDisplay();
 
   // Set text size and color
-  display.setTextSize(1);  // Normal size
+  display.setTextSize(4);  // Normal size
   display.setTextColor(SSD1306_WHITE);
 
   // Display text
-  display.setCursor(0, 10);
+  display.setCursor(10, 20);
   display.display();
 }
 
@@ -70,12 +72,13 @@ String decideWinner(int base, int val, int val1) {
   int diff = abs(val - base);
   int diff1 = abs(val1 - base);
 
-   // Check if < suffices. maybe implement = case?
-  return (diff1 < diff2) ? "p1" : "p2";
+  // Check if < suffices. maybe implement = case?
+  return (diff < diff1) ? "p1" : "p2";
 }
 
 void loop() {
   if (gamePaused) {
+    Serial.println("gamepaused");
     // read potpin to gather level.
     potValue = analogRead(potPin);  // Read the potentiometer value (0-4095)
 
@@ -85,11 +88,11 @@ void loop() {
     display.setCursor(0, 10);
     display.println(stepValue);
     display.display();
-
   } else {
     // send level to slaves, and generate and send angle.
     randomSeed(esp_random());  // Seed the random generator with hardware RNG
     int randomValue = random(0, 161);
+    Serial.println(randomValue);
 
     switch (stepValue) {
       case 1:
@@ -102,25 +105,33 @@ void loop() {
         levelTime = 4500;
         break;
     }
-
+    Serial.println(levelTime);
     Serial1.print(levelTime);
     Serial2.print(levelTime);
-    delay(levelTime);
 
     // also write angle to master servo.
     myServo.write(randomValue);
+    Serial.println("wrote to master servo");
     Serial1.print(randomValue);
     Serial2.print(randomValue);
 
-    // read angles from slaves.
-    String data1 = Serial1.readStringUntil('\n');
-    String data2 = Serial2.readStringUntil('\n');
+    display.clearDisplay();
+    display.setCursor(0, 10);
+    display.println(randomValue);
+    display.display();
 
+    // read angles from slaves.
+    int data1 = (Serial1.readStringUntil('\n')).toInt();
+    int data2 = (Serial2.readStringUntil('\n')).toInt();
+
+
+    delay(levelTime);
     // decide winner
     display.clearDisplay();
     display.setCursor(0, 10);
-    display.println("W" + decideWinner(randomValue, data1, Data2));
+    display.println("W" + decideWinner(randomValue, data1, data2));
     display.display();
-    
+
     gamePaused = true;
+  }
 }
