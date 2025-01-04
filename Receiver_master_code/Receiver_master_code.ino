@@ -77,6 +77,9 @@ String decideWinner(int base, int val, int val1) {
 }
 
 void loop() {
+      // Serial.println(Serial2.readStringUntil('\n'));
+      // Serial.println((Serial2.readStringUntil('\n').toInt()));
+      // delay(100)
   if (gamePaused) {
     Serial.println("gamepaused");
     // read potpin to gather level.
@@ -120,17 +123,25 @@ void loop() {
     display.println(randomValue);
     display.display();
 
-    // read angles from slaves.
-    int data1 = (Serial1.readStringUntil('\n')).toInt();
-    int data2 = (Serial2.readStringUntil('\n')).toInt();
-
-
     delay(levelTime);
+
+     // read angles from slaves.
+    int data1 = (Serial1.readStringUntil('\n').toInt());
+    Serial.println("esp2: " + Serial2.readStringUntil('\n'));
+    int data2 = (Serial2.readStringUntil('\n').toInt());
+    Serial.print("p1: ");
+    Serial.println(data1);
+    Serial.print("p2: ");
+    Serial.println(data2);
+
     // decide winner
     display.clearDisplay();
     display.setCursor(0, 10);
     display.println("W" + decideWinner(randomValue, data1, data2));
     display.display();
+    Serial.print(decideWinner(randomValue, data1, data2));
+    Serial.println(" wins!");
+    delay(4000);
 
     gamePaused = true;
   }

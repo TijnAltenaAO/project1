@@ -29,7 +29,6 @@ void setup() {
   Serial.begin(9600);
   myServo.attach(SERVO_PIN, 500, 2500);  // 500 µs to 2500 µs corresponds to 0° to 180°
 
-
   Wire.begin();
   if (!myMPU9250.init()) {
     Serial.println("MPU9250 does not respond");
@@ -52,7 +51,7 @@ void setup() {
   }
 
   // Clear display buffer
-  display.clearDisplay();
+  display.clearDisplay ();
 
   // Set text size and color
   display.setTextSize(3);  // Normal size
@@ -67,9 +66,7 @@ void setup() {
 void loop() {
   xyzFloat angle = myMPU9250.getAngles();
 // maybe write logic so it cant go from 90->-Q, yk.
-  Serial.print("Angle z   = ");
-  Serial.print(angle.z);
-  Serial.println();
+  Serial.println(angle.x+90);
 
   display.clearDisplay();
   display.setCursor(0, 10);
