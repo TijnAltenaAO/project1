@@ -1,9 +1,15 @@
-#include <MPU9250_WE.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-#define MPU9250_ADDR 0x68
+const int MPU_addr = 0x68;
+int16_t AcX, AcY, AcZ, Tmp, GyX, GyY, GyZ;
+
+int minVal = 265;
+int maxVal = 402;
+
+double x;
+
 // Define screen dimensions
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -21,7 +27,6 @@ Servo myServo;
 // Define GPIO pin for the servo
 #define SERVO_PIN 18
 
-MPU9250_WE myMPU9250 = MPU9250_WE(MPU9250_ADDR);
 
 int servo_angle;
 
@@ -29,21 +34,11 @@ void setup() {
   Serial.begin(9600);
   myServo.attach(SERVO_PIN, 500, 2500);  // 500 µs to 2500 µs corresponds to 0° to 180°
 
-
   Wire.begin();
-  if (!myMPU9250.init()) {
-    Serial.println("MPU9250 does not respond");
-  } else {
-    Serial.println("MPU9250 is connected");
-  }
-
-  Serial.println("Position you MPU9250 flat and don't move it - calibrating...");
-  delay(1000);
-  myMPU9250.autoOffsets();
-  Serial.println("Done!");
-  myMPU9250.setAccRange(MPU9250_ACC_RANGE_2G);
-  myMPU9250.enableAccDLPF(true);
-  myMPU9250.setAccDLPF(MPU9250_DLPF_6);
+  Wire.beginTransmission(MPU_addr);
+  Wire.write(0x6B);
+  Wire.write(0);
+  Wire.endTransmission(true);
 
   if (!display.begin(SSD1306_PAGEADDR, OLED_ADDR)) {
     Serial.println(F("SSD1306 allocation failed"));
@@ -65,17 +60,47 @@ void setup() {
 }
 
 void loop() {
-  xyzFloat angle = myMPU9250.getAngles();
-// maybe write logic so it cant go from 90->-Q, yk.
-  Serial.print("Angle z   = ");
-  Serial.print(angle.z);
-  Serial.println();
+  Wire.beginTransmission(MPU_addr);
+  Wire.write(0x3B);
+  Wire.endTransmission(false);
+  Wire.requestFrom(MPU_addr, 14, true);
+  AcX = Wire.read() << 8 | Wire.read();
+  AcY = Wire.read() << 8 | Wire.read();
+  AcZ = Wire.read() << 8 | Wire.read();
+  int xAng = map(AcX, minVal, maxVal, -90, 90);
+  int yAng = map(AcY, minVal, maxVal, -90, 90);
+  int zAng = map(AcZ, minVal, maxVal, -90, 90);
+  x = RAD_TO_DEG * (atan2(-yAng, -zAng) + PI);
+
+  // Serial.print("AngleX= ");
+
+  if (x > 90 && x < 270) {
+    int diffX90 = abs(x - 90);
+    int diffX270 = abs(x - 270);
+
+    if (diffX90 > diffX270) {
+      Serial.println(diffX90);
+      Serial.println(diffX270);
+      Serial.println(x);
+      x = 180;
+    } else {
+      // check if could be 0? weird behavior lol.
+      x = 90;
+    }
+  }
+
+  if (x <= 90) {
+    x = map(x, 0, 90, 90, 0);
+  } else if (x > 270) {
+    x = map(x, 270, 360, 180, 90);
+  }
+
+  Serial.println(x);
 
   display.clearDisplay();
   display.setCursor(0, 10);
-  display.println(angle.x);
+  display.println(x);
   display.display();
 
-  myServo.write(angle.x + 90);
-  delay(100);
+  myServo.write(x);
 }

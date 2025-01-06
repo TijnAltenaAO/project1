@@ -45,10 +45,10 @@ void setup() {
   // Attach interrupt to the button pin
   attachInterrupt(digitalPinToInterrupt(buttonPin), handleButtonPress, FALLING);
 
-  myServo.attach(SERVO_PIN, 500, 2500);  // 500 µs to 2500 µs corresponds to 0° to 180° (figure out if not limited to 120 or 160)
+  myServo.attach(servoPin, 500, 2500);  // 500 µs to 2500 µs corresponds to 0° to 180° (figure out if not limited to 120 or 160)
 
   // Initialize display
-  if (!display.begin(SSD1306_I2C_ADDRESS, OLED_ADDR)) {
+  if (!display.begin(SSD1306_PAGEADDR, OLED_ADDR)) {
     Serial.println(F("SSD1306 allocation failed"));
     for (;;)
       ;
@@ -58,7 +58,7 @@ void setup() {
   display.clearDisplay();
 
   // Set text size and color
-  display.setTextSize(1);  // Normal size
+  display.setTextSize(3);  // Normal size
   display.setTextColor(SSD1306_WHITE);
 
   // Display text
@@ -70,8 +70,8 @@ String decideWinner(int base, int val, int val1) {
   int diff = abs(val - base);
   int diff1 = abs(val1 - base);
 
-   // Check if < suffices. maybe implement = case?
-  return (diff1 < diff2) ? "p1" : "p2";
+  // Check if < suffices. maybe implement = case?
+  return (diff < diff1) ? "p1" : "p2";
 }
 
 void loop() {
@@ -93,34 +93,50 @@ void loop() {
 
     switch (stepValue) {
       case 1:
-        levelTime = 1500;
+        levelTime = 5000;
         break;
       case 2:
-        levelTime = 3000;
+        levelTime = 10000;
         break;
       case 3:
-        levelTime = 4500;
+        levelTime = 15000;
         break;
     }
 
     Serial1.print(levelTime);
     Serial2.print(levelTime);
-    delay(levelTime);
 
     // also write angle to master servo.
     myServo.write(randomValue);
     Serial1.print(randomValue);
     Serial2.print(randomValue);
+    display.clearDisplay();
+    display.setCursor(0, 10);
+    display.println(randomValue);
+    display.display();
 
+    delay(levelTime);
     // read angles from slaves.
-    String data1 = Serial1.readStringUntil('\n');
-    String data2 = Serial2.readStringUntil('\n');
+    while (Serial1.available() > 0) {
+      Serial1.read();
+    }
+    while (Serial2.available() > 0) {
+      Serial2.read();
+    }
+
+    int data1 = Serial1.readStringUntil('\n').toInt();
+    int data2 = Serial2.readStringUntil('\n').toInt();
+    
+    Serial.println(data1);
+    Serial.println(data2);
 
     // decide winner
     display.clearDisplay();
     display.setCursor(0, 10);
-    display.println("W" + decideWinner(randomValue, data1, Data2));
+    display.println("W = " + decideWinner(randomValue, data1, data2));
     display.display();
-    
+    delay(5000);
+
     gamePaused = true;
+  }
 }
