@@ -72,7 +72,7 @@ void loop() {
   int zAng = map(AcZ, minVal, maxVal, -90, 90);
   x = RAD_TO_DEG * (atan2(-yAng, -zAng) + PI);
 
-  Serial.print("AngleX= ");
+  // Serial.print("AngleX= ");
 
   if (x > 90 && x < 270) {
     int diffX90 = abs(x - 90);
