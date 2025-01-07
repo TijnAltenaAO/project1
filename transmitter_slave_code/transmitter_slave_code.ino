@@ -103,4 +103,5 @@ void loop() {
   display.display();
 
   myServo.write(x);
+  delay(20);
 }

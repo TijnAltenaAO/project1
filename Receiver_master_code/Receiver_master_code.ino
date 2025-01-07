@@ -41,6 +41,7 @@ void setup() {
   Serial1.begin(9600, SERIAL_8N1, 25, 26);  // RX2_PIN = GPIO 25, TX2_PIN = GPIO 26
 
   pinMode(potPin, INPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
 
   // Attach interrupt to the button pin
   attachInterrupt(digitalPinToInterrupt(buttonPin), handleButtonPress, FALLING);
@@ -87,56 +88,56 @@ void loop() {
     display.display();
 
   } else {
-    // send level to slaves, and generate and send angle.
-    randomSeed(esp_random());  // Seed the random generator with hardware RNG
-    int randomValue = random(0, 161);
+    for (int i = 0; i < 3; i++) {
+      // send level to slaves, and generate and send angle.
+      randomSeed(esp_random());  // Seed the random generator with hardware RNG
+      int randomValue = random(0, 161);
 
-    switch (stepValue) {
-      case 1:
-        levelTime = 5000;
-        break;
-      case 2:
-        levelTime = 10000;
-        break;
-      case 3:
-        levelTime = 15000;
-        break;
+      switch (stepValue) {
+        case 1:
+          levelTime = 5000;
+          break;
+        case 2:
+          levelTime = 10000;
+          break;
+        case 3:
+          levelTime = 15000;
+          break;
+      }
+
+      Serial1.print(levelTime);
+      Serial2.print(levelTime);
+
+      // also write angle to master servo.
+      myServo.write(randomValue);
+      display.clearDisplay();
+      display.setCursor(0, 10);
+      display.println(randomValue);
+      display.display();
+
+      delay(levelTime);
+      // read angles from slaves.
+      while (Serial1.available() > 0) {
+        Serial1.read();
+      }
+      while (Serial2.available() > 0) {
+        Serial2.read();
+      }
+
+      int data1 = Serial1.readStringUntil('\n').toInt();
+      int data2 = Serial2.readStringUntil('\n').toInt();
+
+      Serial.println(data1);
+      Serial.println(data2);
+
+      // decide winner
+      display.clearDisplay();
+      display.setCursor(0, 10);
+      display.println("W = " + decideWinner(randomValue, data1, data2));
+      display.display();
+      delay(5000);
+
+      gamePaused = true;
     }
-
-    Serial1.print(levelTime);
-    Serial2.print(levelTime);
-
-    // also write angle to master servo.
-    myServo.write(randomValue);
-    Serial1.print(randomValue);
-    Serial2.print(randomValue);
-    display.clearDisplay();
-    display.setCursor(0, 10);
-    display.println(randomValue);
-    display.display();
-
-    delay(levelTime);
-    // read angles from slaves.
-    while (Serial1.available() > 0) {
-      Serial1.read();
-    }
-    while (Serial2.available() > 0) {
-      Serial2.read();
-    }
-
-    int data1 = Serial1.readStringUntil('\n').toInt();
-    int data2 = Serial2.readStringUntil('\n').toInt();
-    
-    Serial.println(data1);
-    Serial.println(data2);
-
-    // decide winner
-    display.clearDisplay();
-    display.setCursor(0, 10);
-    display.println("W = " + decideWinner(randomValue, data1, data2));
-    display.display();
-    delay(5000);
-
-    gamePaused = true;
   }
 }
