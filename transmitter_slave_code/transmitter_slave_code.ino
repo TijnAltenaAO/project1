@@ -151,7 +151,7 @@ void loop() {
   }
 
  // Set values to send
-  myData.id = 2;
+  myData.id = 1;
   myData.x = x;
 
   // Send message via ESP-NOW

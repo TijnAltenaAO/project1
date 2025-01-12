@@ -125,18 +125,18 @@ String decideWinner(int base, int val, int val1) {
 }
 
 void loop() {
-  // if (gamePaused) {
-  //   // read potpin to gather level.
-  //   potValue = analogRead(potPin);  // Read the potentiometer value (0-4095)
+  if (gamePaused) {
+    // read potpin to gather level.
+    potValue = analogRead(potPin);  // Read the potentiometer value (0-4095)
 
-  //   // Map the raw value to 4 discrete steps: 0, 1, 2, 3
-  //   stepValue = map(potValue, 0, 4095, 1, 3);
-  //   display.clearDisplay();
-  //   display.setCursor(0, 10);
-  //   display.println(stepValue);
-  //   display.display();
+    // Map the raw value to 4 discrete steps: 0, 1, 2, 3
+    stepValue = map(potValue, 0, 4095, 1, 3);
+    display.clearDisplay();
+    display.setCursor(0, 10);
+    display.println(stepValue);
+    display.display();
 
-  // } else {
+  } else {
     for (int i = 0; i < 3; i++) {
       // send level to slaves, and generate and send angle.
       randomSeed(esp_random());  // Seed the random generator with hardware RNG
@@ -179,6 +179,6 @@ void loop() {
 
       gamePaused = true;
     }
-  // }
+  }
 }
  
