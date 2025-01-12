@@ -16,6 +16,32 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 // Define servo object
 Servo myServo;
 
+/*********
+  Rui Santos & Sara Santos - Random Nerd Tutorials
+  Complete project details at https://RandomNerdTutorials.com/esp-now-many-to-one-esp32/
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.  
+  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+*********/
+#include <esp_now.h>
+#include <WiFi.h>
+
+// Structure example to receive data
+// Must match the sender structure
+typedef struct struct_message {
+  int id;
+  int x;
+}struct_message;
+
+// Create a struct_message called myData
+struct_message myData;
+
+// Create a structure to hold the readings from each board
+struct_message board1;
+struct_message board2;
+
+// Create an array with all the structures
+struct_message boardsStruct[2] = {board1, board2};
+
 int potPin = 34;
 int buttonPin = 27;
 int servoPin = 18;
@@ -29,16 +55,39 @@ void IRAM_ATTR handleButtonPress() {
   gamePaused = !gamePaused;  // Toggle game paused state
 }
 
+// callback function that will be executed when data is received
+int OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+  // char macStr[18];
+  // Serial.print("Packet received from: ");
+  // snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+  //          mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+  // Serial.println(macStr);
+  memcpy(&myData, incomingData, sizeof(myData));
+  // Serial.printf("Board ID %u: %u bytes\n", myData.id, len);
+  // Update the structures with the new incoming data
+  boardsStruct[myData.id-1].x = myData.x;
+  return boardsStruct[myData.id-1].x;
+  // Serial.printf("x value: %d \n", boardsStruct[myData.id-1].x);
+  // Serial.println();
+}
+
 void setup() {
   // Initialize Serial Monitor
   Serial.begin(115200);
-  delay(1000);
+  delay(500);
 
-  // Initialize UART1
-  Serial2.begin(9600, SERIAL_8N1, 16, 17);  // Replace RX1_PIN and TX1_PIN with your GPIOs
+   //Set device as a Wi-Fi Station
+  WiFi.mode(WIFI_STA);
 
-  // Initialize UART2
-  Serial1.begin(9600, SERIAL_8N1, 25, 26);  // RX2_PIN = GPIO 25, TX2_PIN = GPIO 26
+  //Init ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  
+  // Once ESPNow is successfully Init, we will register for recv CB to
+  // get recv packer info
+  esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 
   pinMode(potPin, INPUT);
   pinMode(buttonPin, INPUT_PULLUP);
@@ -105,9 +154,6 @@ void loop() {
           break;
       }
 
-      Serial1.print(levelTime);
-      Serial2.print(levelTime);
-
       // also write angle to master servo.
       myServo.write(randomValue);
       display.clearDisplay();
@@ -116,20 +162,14 @@ void loop() {
       display.display();
 
       delay(levelTime);
-      // read angles from slaves.
-      while (Serial1.available() > 0) {
-        Serial1.read();
-      }
-      while (Serial2.available() > 0) {
-        Serial2.read();
-      }
 
-      int data1 = Serial1.readStringUntil('\n').toInt();
-      int data2 = Serial2.readStringUntil('\n').toInt();
+      // read angles from slaves.
+      int data1 = boardsStruct[0].x;
+      int data2 = boardsStruct[1].x;
 
       Serial.println(data1);
       Serial.println(data2);
-
+      // delay(10000);
       // decide winner
       display.clearDisplay();
       display.setCursor(0, 10);
@@ -141,3 +181,4 @@ void loop() {
     }
   }
 }
+ 
