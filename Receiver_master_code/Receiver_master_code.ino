@@ -30,7 +30,7 @@ Servo myServo;
 typedef struct struct_message {
   int id;
   int x;
-}struct_message;
+} struct_message;
 
 // Create a struct_message called myData
 struct_message myData;
@@ -40,11 +40,13 @@ struct_message board1;
 struct_message board2;
 
 // Create an array with all the structures
-struct_message boardsStruct[2] = {board1, board2};
+struct_message boardsStruct[2] = { board1, board2 };
 
 int potPin = 34;
 int buttonPin = 27;
 int servoPin = 18;
+int winsP1 = 0;
+int winsP2 = 0;
 int potValue;
 int stepValue;
 int levelTime;
@@ -56,7 +58,7 @@ void IRAM_ATTR handleButtonPress() {
 }
 
 // callback function that will be executed when data is received
-int OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+int OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   // char macStr[18];
   // Serial.print("Packet received from: ");
   // snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -65,8 +67,8 @@ int OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
   // Serial.printf("Board ID %u: %u bytes\n", myData.id, len);
   // Update the structures with the new incoming data
-  boardsStruct[myData.id-1].x = myData.x;
-  return boardsStruct[myData.id-1].x;
+  boardsStruct[myData.id - 1].x = myData.x;
+  return boardsStruct[myData.id - 1].x;
   // Serial.printf("x value: %d \n", boardsStruct[myData.id-1].x);
   // Serial.println();
 }
@@ -76,7 +78,7 @@ void setup() {
   Serial.begin(115200);
   delay(500);
 
-   //Set device as a Wi-Fi Station
+  //Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
 
   //Init ESP-NOW
@@ -84,7 +86,7 @@ void setup() {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
-  
+
   // Once ESPNow is successfully Init, we will register for recv CB to
   // get recv packer info
   esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
@@ -113,6 +115,8 @@ void setup() {
 
   // Display text
   display.setCursor(0, 10);
+  display.println("BIER");
+  delay(1000);
   display.display();
 }
 
@@ -128,19 +132,26 @@ void loop() {
   if (gamePaused) {
     // read potpin to gather level.
     potValue = analogRead(potPin);  // Read the potentiometer value (0-4095)
-
-    // Map the raw value to 4 discrete steps: 0, 1, 2, 3
+    // Map the raw value to 3 discrete steps: 1, 2, 3
     stepValue = map(potValue, 0, 4095, 1, 3);
     display.clearDisplay();
-    display.setCursor(0, 10);
-    display.println(stepValue);
-    display.display();
+    display.setTextSize(2);  // Normal size
 
+    display.setCursor(0, 10);
+    display.print("Level: ");
+    display.println(stepValue);
+
+    display.println("Wins: ");
+    display.print("P1:");
+    display.print(winsP1);
+    display.print(" P2:");
+    display.print(winsP2);
+    display.display();
   } else {
     for (int i = 0; i < 3; i++) {
       // send level to slaves, and generate and send angle.
       randomSeed(esp_random());  // Seed the random generator with hardware RNG
-      int randomValue = random(0, 161);
+      int randomValue = random(0, 180);
 
       switch (stepValue) {
         case 1:
@@ -157,11 +168,13 @@ void loop() {
       // also write angle to master servo.
       myServo.write(randomValue);
       display.clearDisplay();
+      display.setTextSize(3);  // Normal size
       display.setCursor(0, 10);
       display.println(randomValue);
       display.display();
 
       delay(levelTime);
+      // delay(2500)
 
       // read angles from slaves.
       int data1 = boardsStruct[0].x;
@@ -171,14 +184,20 @@ void loop() {
       Serial.println(data2);
       // delay(10000);
       // decide winner
+      String winner = decideWinner(randomValue, data1, data2);
       display.clearDisplay();
       display.setCursor(0, 10);
-      display.println("W = " + decideWinner(randomValue, data1, data2));
+      display.println(winner + " wint");
       display.display();
       delay(5000);
+
+      if (winner == "p1") {
+        winsP1++;
+      } else {
+        winsP2++;
+      }
 
       gamePaused = true;
     }
   }
 }
- 
