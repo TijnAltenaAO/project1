@@ -16,12 +16,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 // Define servo object
 Servo myServo;
 
-/*********
-  Rui Santos & Sara Santos - Random Nerd Tutorials
-  Complete project details at https://RandomNerdTutorials.com/esp-now-many-to-one-esp32/
-  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.  
-  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*********/
 #include <esp_now.h>
 #include <WiFi.h>
 
@@ -47,9 +41,11 @@ int buttonPin = 27;
 int servoPin = 18;
 int winsP1 = 0;
 int winsP2 = 0;
+int rounds = 0;
 int potValue;
 int stepValue;
 int levelTime;
+
 volatile bool gamePaused = true;  // game paused or not.
 
 // Interrupt Service Routine (ISR) for the button
@@ -142,35 +138,40 @@ void loop() {
     display.println(stepValue);
 
     display.println("Wins: ");
-    display.print("P1:");
+    // display.print("P1:");
     display.print(winsP1);
-    display.print(" P2:");
+    display.print(" - ");
     display.print(winsP2);
     display.display();
   } else {
-    for (int i = 0; i < 3; i++) {
+    // winsP1 = 0;
+    // winsP2 = 0;
+    switch (stepValue) {
+      case 1:
+        levelTime = 5000;
+        rounds = 3;
+        break;
+      case 2:
+        levelTime = 2500;
+        rounds = 5;
+        break;
+      case 3:
+        levelTime = 1000;
+        rounds = 10;
+        break;
+    }
+
+    for (int i = 0; i < rounds; i++) {
       // send level to slaves, and generate and send angle.
       randomSeed(esp_random());  // Seed the random generator with hardware RNG
       int randomValue = random(0, 180);
-
-      switch (stepValue) {
-        case 1:
-          levelTime = 5000;
-          break;
-        case 2:
-          levelTime = 10000;
-          break;
-        case 3:
-          levelTime = 15000;
-          break;
-      }
 
       // also write angle to master servo.
       myServo.write(randomValue);
       display.clearDisplay();
       display.setTextSize(3);  // Normal size
       display.setCursor(0, 10);
-      display.println(randomValue);
+      display.println(randomValue - 90);
       display.display();
 
       delay(levelTime);
@@ -180,16 +181,22 @@ void loop() {
       int data1 = boardsStruct[0].x;
       int data2 = boardsStruct[1].x;
 
-      Serial.println(data1);
-      Serial.println(data2);
+      Serial.println(data1 - 90);
+      Serial.println(data2 - 90);
       // delay(10000);
       // decide winner
       String winner = decideWinner(randomValue, data1, data2);
       display.clearDisplay();
       display.setCursor(0, 10);
       display.println(winner + " wint");
+      display.setTextSize(2);  // Normal size
+                               // display.print("P1:");
+      display.print(winsP1);
+      display.print(" - ");
+      display.print(winsP2);
+
       display.display();
-      delay(5000);
+      delay(levelTime);
 
       if (winner == "p1") {
         winsP1++;

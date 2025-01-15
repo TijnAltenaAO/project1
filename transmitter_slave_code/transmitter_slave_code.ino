@@ -1,12 +1,8 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-/*********
-  Rui Santos & Sara Santos - Random Nerd Tutorials
-  Complete project details at https://RandomNerdTutorials.com/esp-now-many-to-one-esp32/
-  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.
-  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*********/
+
+
 #include <esp_now.h>
 #include <WiFi.h>
 
@@ -151,7 +147,7 @@ void loop() {
   }
 
  // Set values to send
-  myData.id = 1;
+  myData.id = 2;
   myData.x = x;
 
   // Send message via ESP-NOW
@@ -165,7 +161,7 @@ void loop() {
 
   display.clearDisplay();
   display.setCursor(0, 10);
-  display.println(x);
+  display.println((x - 90));
   display.display();
 
   myServo.write(x);
