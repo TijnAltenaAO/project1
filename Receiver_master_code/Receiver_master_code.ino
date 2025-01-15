@@ -2,6 +2,8 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <esp_now.h>
+#include <WiFi.h>
 
 #define MPU9250_ADDR 0x68
 // Define screen dimensions
@@ -10,14 +12,9 @@
 // Define I2C address for ssd1306
 #define OLED_ADDR 0x3C
 
-// Create SSD1306 object
+// Create SSD1306 object and servo object.
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
-
-// Define servo object
 Servo myServo;
-
-#include <esp_now.h>
-#include <WiFi.h>
 
 // Structure example to receive data
 // Must match the sender structure
@@ -55,18 +52,9 @@ void IRAM_ATTR handleButtonPress() {
 
 // callback function that will be executed when data is received
 int OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
-  // char macStr[18];
-  // Serial.print("Packet received from: ");
-  // snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-  //          mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-  // Serial.println(macStr);
   memcpy(&myData, incomingData, sizeof(myData));
-  // Serial.printf("Board ID %u: %u bytes\n", myData.id, len);
-  // Update the structures with the new incoming data
   boardsStruct[myData.id - 1].x = myData.x;
   return boardsStruct[myData.id - 1].x;
-  // Serial.printf("x value: %d \n", boardsStruct[myData.id-1].x);
-  // Serial.println();
 }
 
 void setup() {
@@ -112,8 +100,8 @@ void setup() {
   // Display text
   display.setCursor(0, 10);
   display.println("BIER");
-  delay(1000);
   display.display();
+  delay(1000);
 }
 
 String decideWinner(int base, int val, int val1) {
@@ -121,22 +109,54 @@ String decideWinner(int base, int val, int val1) {
   int diff1 = abs(val1 - base);
 
   // Check if < suffices. maybe implement = case?
+  if (diff == diff1) {
+    return "None";
+  }
+
   return (diff < diff1) ? "p1" : "p2";
+}
+
+void startGameCountdown() {
+  for (int i = 3; i > 0; i--) {
+    display.clearDisplay();
+    display.setCursor(0, 10);
+    display.println(i);
+    display.display();
+
+    delay(1000);
+
+    if (i == 1) {
+      display.clearDisplay();
+      display.setCursor(0, 10);
+      display.println("Go!");
+      display.display();
+
+      delay(1000);
+    }
+  }
+}
+
+void displayRandomValue() {
+  display.clearDisplay();
+  display.setTextSize(3);  // Normal size
+  display.setCursor(0, 10);
+  display.println(randomValue - 90);
+  display.display();
 }
 
 void loop() {
   if (gamePaused) {
     // read potpin to gather level.
     potValue = analogRead(potPin);  // Read the potentiometer value (0-4095)
-    // Map the raw value to 3 discrete steps: 1, 2, 3
+    // Map the raw value to 5 discrete steps: 1, 2, 3, 4 and 5.
     stepValue = map(potValue, 0, 4095, 1, 5);
-    display.clearDisplay();
-    display.setTextSize(2);  // Normal size
 
+    // show level and wins of players when not playing.
+    display.clearDisplay();
+    display.setTextSize(2);
     display.setCursor(0, 10);
     display.print("Level: ");
     display.println(stepValue);
-
     display.println("Wins: ");
     display.print(winsP1);
     display.print(" - ");
@@ -146,6 +166,8 @@ void loop() {
     // uncomment to reset win counter after pressing play again.
     // winsP1 = 0;
     // winsP2 = 0;
+
+    // quick statemachine to check for level.
     switch (stepValue) {
       case 1:
         levelTime = 5000;
@@ -169,64 +191,54 @@ void loop() {
         break;
     }
 
-    for (int i = 3; i > 0; i--) {
-      display.clearDisplay();
-      display.setCursor(0, 10);
-      display.println(i);
-      display.display();
-
-      delay(1000);
-
-      if (i == 1) {
-        display.clearDisplay();
-        display.setCursor(0, 10);
-        display.println("Go!");
-        display.display();
-
-        delay(1000);
-      }
-    }
+    startGameCountdown();
 
 
     for (int i = 0; i < rounds; i++) {
       // send level to slaves, and generate and send angle.
       randomSeed(esp_random());  // Seed the random generator with hardware RNG
       int randomValue = random(0, 180);
+      myServo.write(randomValue);  // also write angle to master servo.
 
-      // also write angle to master servo.
-      myServo.write(randomValue);
-      display.clearDisplay();
-      display.setTextSize(3);  // Normal size
-      display.setCursor(0, 10);
-      display.println(randomValue - 90);
-      display.display();
+      displayRandomValue();
 
-      delay(levelTime);
-      // delay(2500)
+      delay(levelTime);  // delay for desired levelTime
 
       // read angles from slaves.
       int data1 = boardsStruct[0].x;
       int data2 = boardsStruct[1].x;
 
-      Serial.println(data1 - 90);
+      Serial.println(data1 - 90);  // log for testing purposes.
       Serial.println(data2 - 90);
-      // delay(10000);
+
       // decide winner
       String winner = decideWinner(randomValue, data1, data2);
-      display.clearDisplay();
-      display.setCursor(0, 10);
-      display.println(winner + " wint");
-      display.setTextSize(2);  // Normal size
-      display.print(winsP1);
-      display.print(" - ");
-      display.print(winsP2);
-      display.display();
+
+      if (winner == "None") {
+        display.clearDisplay();
+        display.setCursor(0, 10);
+        display.println("Quitte");
+        display.setTextSize(2);  // Normal size
+        display.print(winsP1);
+        display.print(" - ");
+        display.print(winsP2);
+        display.display();
+      } else {
+        display.clearDisplay();
+        display.setCursor(0, 10);
+        display.println(winner + " wint");
+        display.setTextSize(2);  // Normal size
+        display.print(winsP1);
+        display.print(" - ");
+        display.print(winsP2);
+        display.display();
+      }
 
       delay(levelTime);
 
       if (winner == "p1") {
         winsP1++;
-      } else {
+      } else if (winner == "p2") {
         winsP2++;
       }
 
