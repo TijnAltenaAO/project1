@@ -129,7 +129,7 @@ void loop() {
     // read potpin to gather level.
     potValue = analogRead(potPin);  // Read the potentiometer value (0-4095)
     // Map the raw value to 3 discrete steps: 1, 2, 3
-    stepValue = map(potValue, 0, 4095, 1, 3);
+    stepValue = map(potValue, 0, 4095, 1, 5);
     display.clearDisplay();
     display.setTextSize(2);  // Normal size
 
@@ -138,12 +138,12 @@ void loop() {
     display.println(stepValue);
 
     display.println("Wins: ");
-    // display.print("P1:");
     display.print(winsP1);
     display.print(" - ");
     display.print(winsP2);
     display.display();
   } else {
+    // uncomment to reset win counter after pressing play again.
     // winsP1 = 0;
     // winsP2 = 0;
     switch (stepValue) {
@@ -159,7 +159,27 @@ void loop() {
         levelTime = 1000;
         rounds = 10;
         break;
+      case 4:
+        levelTime = 500;
+        rounds = 10;
+        break;
+      case 5:
+        levelTime = 250;
+        rounds = 10;
+        break;
     }
+
+    for (int i = 3; i > 0; i--) {
+      display.clearDisplay();
+      display.setCursor(0, 10);
+      display.println(i);
+      display.display();
+
+      delay(1000);
+      
+      if (i = )
+    }
+
 
     for (int i = 0; i < rounds; i++) {
       // send level to slaves, and generate and send angle.
@@ -190,12 +210,11 @@ void loop() {
       display.setCursor(0, 10);
       display.println(winner + " wint");
       display.setTextSize(2);  // Normal size
-                               // display.print("P1:");
       display.print(winsP1);
       display.print(" - ");
       display.print(winsP2);
-
       display.display();
+
       delay(levelTime);
 
       if (winner == "p1") {
