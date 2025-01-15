@@ -176,8 +176,15 @@ void loop() {
       display.display();
 
       delay(1000);
-      
-      if (i = )
+
+      if (i == 1) {
+        display.clearDisplay();
+        display.setCursor(0, 10);
+        display.println("Go!");
+        display.display();
+
+        delay(1000);
+      }
     }
 
 
