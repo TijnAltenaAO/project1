@@ -236,6 +236,7 @@ void loop() {
 
       delay(levelTime);
 
+      // check if possible to include in decision function. possible scope issues kept me from doing it before.
       if (winner == "p1") {
         winsP1++;
       } else if (winner == "p2") {
